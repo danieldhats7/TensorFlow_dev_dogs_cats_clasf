@@ -1,6 +1,6 @@
 # Clasificación de imágenes (perros y gatos)
 
-Este código fuente sirve como apoyo para el video de creación de un clasificador de perros y gatos usando Python y Tensorflow, del canal de YouTube [Ringa Tech](https://youtube.com/RingaTech)
+Este código fuente sirve como apoyo para el video de creación de un clasificador de perros y gatos usando Python y Tensorflow. Puedes verlo [aqui](https://danieldhats7.github.io/TensorFlow_dev_dogs_cats_clasf/)
 
 Este código representa el sitio web, una vez que se crea y entrena el modelo de inteligencia artificial con Python y Tensorflow, el cual es exportado a los archivos "json" y "bin".
 Puede utilizarse en el celular, solo apunta la cámara al perro o gato que quieres clasificar (puede ser una imagen de la computadora, una foto, o uno de verdad), lo hace todo en el explorador utilizando Tensorflow.js.
@@ -32,6 +32,3 @@ Si quieres abrirlo en tu celular, no se puede solo poner la IP local de tu compu
 
 ### Uso
 Puedes dar clic en el botón de "Cambiar camara" para utilizar la cámara delantera o trasera del celular. Solo apunta la cámara a un perro o gato, y abajo te aparecerá la predicción. Tampoco es el clasificador del futuro entonces si no clasifica perfecto, oops.
-
-## Problemas
-Si tienes un problema, regístralo aquí o déjame un comentario en el video de Youtube. Asegúrate de primero revisar la consola de desarrollador de tu explorador para ver si puedes identificar el problema.
