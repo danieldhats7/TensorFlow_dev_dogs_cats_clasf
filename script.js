@@ -1,16 +1,20 @@
-var tamano = 400;
+//Tomar y configurar el canvas
+var size = 400;
 var video = document.getElementById("video");
 var canvas = document.getElementById("canvas");
-var otrocanvas = document.getElementById("otrocanvas");
+var othercanvas = document.getElementById("otrocanvas");
 var ctx = canvas.getContext("2d");
 var currentStream = null;
-var facingMode = "user";
+var facingMode = "user"; //Para que funcione con el celular (user/environment)
 var modelo = null;
 
-(async() => {
+var camaras = [];
+
+(async () => {
     console.log("Cargando modelo...");
     modelo = await tf.loadLayersModel("carpeta_salida/model.json");
-    console.log("Modelo cargado");})();
+    console.log("Modelo cargado...");
+})();
 
 window.onload = function() {
     mostrarCamara();
@@ -20,23 +24,25 @@ function mostrarCamara() {
     var opciones = {
         audio: false,
         video: {
-            width: tamano, height: tamano
+            facingMode: "user", width: size, height: size
         }
-    }
-    if (navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia(opciones).then(function(stream) {
-            currentStream = stream;
-            video.srcObject = currentStream;
-            procesarCamara();
-            predecir();
-        }).catch(function(err) {
-            alert("No se pudo utilizar la camara :(");
-            console.log(err);
-            alert(err);
-        })
+    };
+    if(navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia(opciones)
+            .then(function(stream) {
+                currentStream = stream;
+                video.srcObject = currentStream;
+                procesarCamara();
+                predecir();
+            })
+            .catch(function(err) {
+                alert("No se pudo utilizar la camara :(");
+                console.log("No se pudo utilizar la camara :(", err);
+                alert(err);
+            })
     } 
     else {
-        alert("No existe la funcion getUserMedia");
+        alert("No existe la funcion getUserMedia... oops :( no se puede usar la camara");
     }
 }
 
@@ -50,66 +56,63 @@ function cambiarCamara() {
     var opciones = {
         audio: false,
         video: {
-            facingMode: facingMode, width: tamano, height: tamano
+            facingMode: facingMode, width: size, height: size
         }
     };
-    navigator.mediaDevices.getUserMedia(opciones).then(function(stream) {
-        currentStream = stream;
-        video.srcObject = currentStream;
-    }).catch(function(err) {
-        console.log("Oops, hubo un error", err);
-    })
-}
-
-function procesarCamara() {
-  ctx.drawImage(video, 0, 0, tamano, tamano, 0, 0, tamano, tamano);
-  setTimeout(procesarCamara, 20);
+    navigator.mediaDevices.getUserMedia(opciones)
+        .then(function(stream) {
+            currentStream = stream;
+            video.srcObject = currentStream;
+        })
+        .catch(function(err) {
+            console.log("Oops, hubo un error", err);
+        })
 }
 
 function predecir() {
     if (modelo != null) {
-        resample_single(canvas, 150, 150, otrocanvas);
-        //Hacer la predicción
-        var ctx2 = otrocanvas.getContext("2d");
-        var imgData = ctx2.getImageData(0,0, 150, 150);
-        var arr = [];
-        var arr100 = [];
-        for (var p=0; p < imgData.data.length; p+= 4) {
-            var rojo = imgData.data[p] / 255;
-            var verde = imgData.data[p+1] / 255;
-            var azul = imgData.data[p+2] / 255;
-            var gris = (rojo+verde+azul)/3;
-            arr100.push([gris]);
-            if (arr100.length == 100) {
-                arr.push(arr100);
-                arr100 = [];
+        //Pasar canvas a version 150x150
+        resample_single(canvas, 150, 150, othercanvas);
+        var ctx2 = othercanvas.getContext("2d");
+        var imgData = ctx2.getImageData(0,0,150,150);
+        var arr = []; //El arreglo completo
+        var arr150 = []; //Al llegar a arr150 posiciones se pone en 'arr' como un nuevo indice
+        for (var p=0, i=0; p < imgData.data.length; p+=4) {
+            var red = imgData.data[p]/255;
+            var green = imgData.data[p+1]/255;
+            var blue = imgData.data[p+2]/255;
+            arr150.push([red, green, blue]); //Agregar al arr150 y normalizar a 0-1. Aparte queda dentro de un arreglo en el indice 0... again
+            if (arr150.length == 150) {
+                arr.push(arr150);
+                arr150 = [];
             }
         }
-        arr = [arr];
-        var tensor = tf.tensor4d(arr);
-        var resultado = modelo.predict(tensor).dataSync();
-        var respuesta;
-
-        if (resultado <= .5) {
-            respuesta = "Gato";
-        } 
-        else {
-            respuesta = "Perro";
-        }
-        document.getElementById("resultado").innerHTML = respuesta;
+        arr = [arr]; //Meter el arreglo en otro arreglo por que si no tio tensorflow se enoja >:(
+        //Nah basicamente Debe estar en un arreglo nuevo en el indice 0, por ser un tensor4d en forma 1, 150, 150, 1
+        var tensor4 = tf.tensor4d(arr);
+        var resultados = modelo.predict(tensor4).dataSync();
+        var mayorIndice = resultados.indexOf(Math.max.apply(null, resultados));
+        var clases = ['Gato', 'Perro'];
+        console.log("Prediccion", clases[mayorIndice]);
+        document.getElementById("resultado").innerHTML = clases[mayorIndice];
     }
     setTimeout(predecir, 150);
 }
 
+function procesarCamara() { 
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, size, size, 0, 0, size, size);
+    setTimeout(procesarCamara, 20);
+}
 /**
-   * Hermite resize - fast image resize/resample using Hermite filter. 1 cpu version!
-   * 
-   * @param {HtmlElement} canvas
-   * @param {int} width
-   * @param {int} height
-   * @param {boolean} resize_canvas if true, canvas will be resized. Optional.
-   * Cambiado por RT, resize canvas ahora es donde se pone el chiqitillllllo
-*/
+ * Hermite resize - fast image resize/resample using Hermite filter. 1 cpu version!
+ * 
+ * @param {HtmlElement} canvas
+ * @param {int} width
+ * @param {int} height
+ * @param {boolean} resize_canvas if true, canvas will be resized. Optional.
+ * Cambiado por RT, resize canvas ahora es donde se pone el chiqitillllllo
+ */
 function resample_single(canvas, width, height, resize_canvas) {
     var width_source = canvas.width;
     var height_source = canvas.height;
@@ -125,7 +128,6 @@ function resample_single(canvas, width, height, resize_canvas) {
     var img2 = ctx2.createImageData(width, height);
     var data = img.data;
     var data2 = img2.data;
-
     for (var j = 0; j < height; j++) {
         for (var i = 0; i < width; i++) {
             var x2 = (i + j * width) * 4;
