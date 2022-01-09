@@ -68,10 +68,10 @@ function procesarCamara() {
 
 function predecir() {
     if (modelo != null) {
-        resample_single(canvas, 100, 100, otrocanvas);
+        resample_single(canvas, 150, 150, otrocanvas);
         //Hacer la predicción
         var ctx2 = otrocanvas.getContext("2d");
-        var imgData = ctx2.getImageData(0,0, 100, 100);
+        var imgData = ctx2.getImageData(0,0, 150, 150);
         var arr = [];
         var arr100 = [];
         for (var p=0; p < imgData.data.length; p+= 4) {
